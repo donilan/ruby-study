@@ -1,9 +1,65 @@
 #!/usr/bin/env ruby
 
+# require 'fileutils'
+# require 'mkmf'
+# puts have_library('ssl')
+
+
+# exit(0)
+
+require 'em-http-request'
+
+require 'openssl'
+
+OpenSSL::SSL::VERIFY_PEER = OpenSSL::SSL::VERIFY_NONE
+# uri = URI('https://www.yahoo.com')
+# uri = URI('https://github.com')
+uri = URI('https://ic2500.powerauctions.com/close')
+
+request_options = {
+  # :body => " ",
+  # :keepalive => true,
+  # :head => {
+  #   'content-type' => 'application/json',
+  #   'accept' => 'application/json',
+  #   'Accept-Encoding' => 'gzip,deflate,sdch'
+  # }
+}
+
+EM::run do
+  http = EventMachine::HttpRequest.new(uri).get request_options
+  http.callback do
+    puts 'success'
+    EventMachine::stop
+  end
+  http.errback do
+    # require 'pry'
+    # binding.pry
+    puts "error #{http.error}"
+    EventMachine::stop
+  end
+  # conn = EM::HttpRequest.new 'https://ic2500.powerauctions.com'
+  # req = conn.get request_options
+  # req.callback do
+
+  # end
+
+  # req.errback do 
+  #   puts "error #{req.error}"
+  # end
+  
+  # # require 'pry'
+  # # binding.pry
+  # # puts "response: #{req.response}"
+  EM::stop
+end
+
+
+exit(0)
 
 # require 'rbconfig'
 require 'openssl'
-puts "verify peer: #{OpenSSL::SSL::VERIFY_PEER}, none: #{OpenSSL::SSL::VERIFY_NONE}"
+# puts "verify peer: #{OpenSSL::SSL::VERIFY_PEER}, none: #{OpenSSL::SSL::VERIFY_NONE}"
 OpenSSL::SSL::VERIFY_PEER = OpenSSL::SSL::VERIFY_NONE
 require 'net/https'
 
@@ -19,65 +75,69 @@ require 'net/https'
 
 # uri = URI('https://www.yahoo.com')
 # uri = URI('https://github.com')
-uri = URI('https://ic2500.powerauctions.com')
+uri = URI('https://ic2500.powerauctions.com:443')
 
 
-ruby = File.join(RbConfig::CONFIG['bindir'], RbConfig::CONFIG['ruby_install_name'])
-ruby_version = RUBY_VERSION
-if patch = RbConfig::CONFIG['PATCHLEVEL']
-  ruby_version += "-p#{patch}"
-end
-puts "%s (%s)" % [ruby, ruby_version]
+# ruby = File.join(RbConfig::CONFIG['bindir'], RbConfig::CONFIG['ruby_install_name'])
+# ruby_version = RUBY_VERSION
+# if patch = RbConfig::CONFIG['PATCHLEVEL']
+#   ruby_version += "-p#{patch}"
+# end
+# puts "%s (%s)" % [ruby, ruby_version]
 
-openssl_dir = OpenSSL::X509::DEFAULT_CERT_AREA
-mac_openssl = '/System/Library/OpenSSL' == openssl_dir
-puts "%s: %s" % [OpenSSL::OPENSSL_VERSION, openssl_dir]
-[OpenSSL::X509::DEFAULT_CERT_DIR_ENV, OpenSSL::X509::DEFAULT_CERT_FILE_ENV].each do |key|
-  puts "%s=%s" % [key, ENV[key].to_s.inspect]
-end
+# openssl_dir = OpenSSL::X509::DEFAULT_CERT_AREA
+# mac_openssl = '/System/Library/OpenSSL' == openssl_dir
+# puts "%s: %s" % [OpenSSL::OPENSSL_VERSION, openssl_dir]
+# [OpenSSL::X509::DEFAULT_CERT_DIR_ENV, OpenSSL::X509::DEFAULT_CERT_FILE_ENV].each do |key|
+#   puts "%s=%s" % [key, ENV[key].to_s.inspect]
+# end
 
-ca_file = ENV[OpenSSL::X509::DEFAULT_CERT_FILE_ENV] || OpenSSL::X509::DEFAULT_CERT_FILE
-ca_path = (ENV[OpenSSL::X509::DEFAULT_CERT_DIR_ENV] || OpenSSL::X509::DEFAULT_CERT_DIR).chomp('/')
+# ca_file = ENV[OpenSSL::X509::DEFAULT_CERT_FILE_ENV] || OpenSSL::X509::DEFAULT_CERT_FILE
+# ca_path = (ENV[OpenSSL::X509::DEFAULT_CERT_DIR_ENV] || OpenSSL::X509::DEFAULT_CERT_DIR).chomp('/')
 
-puts "\nHEAD https://#{uri.host}:#{uri.port}"
+# puts "\nHEAD https://#{uri.host}:#{uri.port}"
 # http = Net::HTTP.new(uri.host, uri.port)
 # http.use_ssl = true
 # http.get
+
+req = Net::HTTP.get(uri)
+puts req
 
 
 Net::HTTP.start(uri.host, uri.port,
   :use_ssl => uri.scheme == 'https') do |http|
   # http.verify_mode = OpenSSL::SSL::VERIFY_NONE
-  http.use_ssl = true
+  # http.use_ssl = true
 
-  http.cert_store = OpenSSL::X509::Store.new
-  http.cert_store.set_default_paths
+  # http.cert_store = OpenSSL::X509::Store.new
+  # http.cert_store.set_default_paths
 
-  http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-  failed_cert = failed_cert_reason = nil
+  # http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+  # failed_cert = failed_cert_reason = nil
 
 
-  if mac_openssl
-    warn "warning: will not be able show failed certificate info on OS X's OpenSSL"
-    # This drives me absolutely nuts. It seems that on Rubies compiled against OS X's
-    # system OpenSSL, the mere fact of defining a `verify_callback` makes the
-    # cert verification fail for requests that would otherwise be successful.
-  else
-    http.verify_callback = lambda { |verify_ok, store_context|
-      if !verify_ok
-        failed_cert = store_context.current_cert
-        failed_cert_reason = "%d: %s" % [ store_context.error, store_context.error_string ]
-      end
-      verify_ok
-    }
-  end
+  # if mac_openssl
+  #   warn "warning: will not be able show failed certificate info on OS X's OpenSSL"
+  #   # This drives me absolutely nuts. It seems that on Rubies compiled against OS X's
+  #   # system OpenSSL, the mere fact of defining a `verify_callback` makes the
+  #   # cert verification fail for requests that would otherwise be successful.
+  # else
+  #   http.verify_callback = lambda { |verify_ok, store_context|
+  #     if !verify_ok
+  #       failed_cert = store_context.current_cert
+  #       failed_cert_reason = "%d: %s" % [ store_context.error, store_context.error_string ]
+  #     end
+  #     verify_ok
+  #   }
+  # end
 
 
 
   begin
-    request = Net::HTTP::Get.new uri
-    response = http.request request # Net::HTTPResponse object
-    puts response
+    # request = Net::HTTP::Get.new uri
+    # response = http.request request # Net::HTTPResponse object
+    # puts response
+    
   rescue Errno::ECONNREFUSED
     puts "Error: connection refused"
     exit 1
