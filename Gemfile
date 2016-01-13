@@ -1,5 +1,5 @@
-source 'http://ruby.taobao.org'
+source 'https://rubygems.org/'
 
 # gem 'eventmachine'
 # gem 'em-http-request'
-# gem 'ruby-prof'
+gem 'ruby-prof'
